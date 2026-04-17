@@ -56,7 +56,13 @@
         
         .app-container { max-width: 1600px; margin: 0 auto; }
         
-        /* Theme Toggle Button */
+        /* Blur Background Effect */
+        .main-content.blurred {
+            filter: blur(6px);
+            pointer-events: none;
+            transition: filter 0.3s ease;
+        }
+        
         .theme-toggle {
             position: fixed;
             top: 20px;
@@ -100,7 +106,7 @@
         .mode-btn.active { background: var(--button-equal); color: white; box-shadow: 0 0 8px rgba(42,109,143,0.5); }
         .mode-btn:active { transform: scale(0.96); }
         
-        .main-content { display: flex; gap: 20px; flex-wrap: wrap; }
+        .main-content { display: flex; gap: 20px; flex-wrap: wrap; transition: filter 0.3s ease; }
         
         .calc-panel {
             flex: 2;
@@ -126,7 +132,7 @@
             gap: 20px;
         }
         
-        .history-section, .unit-section, .mode-section {
+        .history-section, .unit-section {
             background: var(--bg-card);
             border-radius: 24px;
             padding: 16px;
@@ -178,7 +184,6 @@
         .op-key { background: var(--button-op); color: var(--text-result); }
         .equal-key { background: var(--button-equal); color: white; }
         .clear-key { background: var(--button-clear); color: white; }
-        .disabled-calc { opacity: 0.5; pointer-events: none; }
         
         .section-title { color: var(--text-result); font-size: 0.9rem; margin: 0 0 12px 0; font-weight: bold; border-left: 3px solid var(--text-result); padding-left: 12px; }
         
@@ -209,7 +214,83 @@
         footer { font-size: 0.6rem; text-align: center; margin-top: 15px; color: var(--text-secondary); }
         .matrix-card { background: var(--bg-card); padding: 12px; border-radius: 16px; margin-bottom: 15px; }
         
-        /* Mobile Responsive */
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background: var(--modal-bg);
+            border-radius: 32px;
+            width: 90%;
+            max-width: 550px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 28px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            border: 1px solid var(--border-color);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--text-result);
+        }
+        
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--text-result);
+        }
+        
+        .close-modal {
+            background: var(--button-clear);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+        }
+        
+        .close-modal:active { transform: scale(0.95); }
+        
+        .modal-body {
+            color: var(--text-primary);
+        }
+        
         @media (max-width: 900px) {
             body { padding: 12px; }
             .main-content { flex-direction: column; }
@@ -221,13 +302,12 @@
             .result-value { font-size: 1.3rem; }
             .mode-nav { gap: 6px; }
             .mode-btn { padding: 6px 12px; font-size: 0.6rem; }
-            .matrix-input { width: 50px; font-size: 0.7rem; }
+            .modal-content { width: 95%; padding: 20px; }
         }
         
         @media (max-width: 550px) {
             .buttons-grid { grid-template-columns: repeat(5, 1fr); }
             .theme-toggle { top: 10px; right: 10px; padding: 6px 12px; font-size: 0.8rem; }
-            .section-title { font-size: 0.8rem; }
         }
         
         @media (max-width: 450px) {
@@ -240,7 +320,6 @@
 
 <div class="app-container">
     <div class="mode-nav">
-        <button class="mode-btn active" data-mode="calc">🧮 Calculate</button>
         <button class="mode-btn" data-mode="matrix">📊 Matrix</button>
         <button class="mode-btn" data-mode="vector">➡️ Vector</button>
         <button class="mode-btn" data-mode="stats">📈 Statistics</button>
@@ -255,7 +334,7 @@
         <button class="mode-btn" data-mode="eng">⚡ Engineer</button>
     </div>
 
-    <div class="main-content">
+    <div class="main-content" id="mainContent">
         <div class="calc-panel" id="calcPanel">
             <div class="display-area">
                 <div class="current-expression" id="currentExpr">0</div>
@@ -284,7 +363,7 @@
                 <button class="equal-key" data-func="eval" style="grid-column: span 2;">= EXE</button>
                 <button class="func-key" data-func="space">SPACE</button><button class="func-key" data-func="help">❔</button>
             </div>
-            <footer>▸ ^ for power | Only active in Calculate mode | Type directly in any field</footer>
+            <footer>▸ ^ for power | sin/cos/tan support DEG/RAD/GRAD | Click mode buttons for tools</footer>
         </div>
 
         <div class="side-panel">
@@ -304,11 +383,19 @@
                 <div class="input-group"><input type="number" id="unitValue" class="input-field" placeholder="Value" value="1" step="any"><select id="fromUnit" class="select-field"></select><span>→</span><select id="toUnit" class="select-field"></select><button id="doConvert" class="action-btn">Convert</button></div>
                 <div id="unitResult" class="data-item" style="margin-top:8px">0</div>
             </div>
+        </div>
+    </div>
+</div>
 
-            <div class="mode-section" id="dynamicContent">
-                <div class="section-title">📌 Current Mode</div>
-                <div class="data-item">Select a mode from top bar</div>
-            </div>
+<!-- Modal Overlay -->
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title" id="modalTitle">Matrix Operations</span>
+            <button class="close-modal" id="closeModal">✕</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Dynamic content will be loaded here -->
         </div>
     </div>
 </div>
@@ -324,27 +411,68 @@
         themeToggle.innerHTML = isDark ? '🌙 Dark' : '☀️ Light';
     });
     
-    // ========== SCIENTIFIC ENGINE ==========
-    let expression = "";
+    // ========== ANGLE CONVERSION ==========
     let angleUnit = "RAD";
     let engMode = false;
     let history = [];
+    let expression = "";
     let currentActiveMode = "calc";
     
-    function evaluateExpression(){
-        if(expression.trim() === ""){ document.getElementById("resultValue").innerText = "0"; document.getElementById("errorMsg").innerText = ""; return; }
-        try{
+    function toRadians(value) {
+        if (angleUnit === "RAD") return value;
+        if (angleUnit === "DEG") return value * Math.PI / 180;
+        if (angleUnit === "GRAD") return value * Math.PI / 200;
+        return value;
+    }
+    
+    function fromRadians(value) {
+        if (angleUnit === "RAD") return value;
+        if (angleUnit === "DEG") return value * 180 / Math.PI;
+        if (angleUnit === "GRAD") return value * 200 / Math.PI;
+        return value;
+    }
+    
+    // ========== SCIENTIFIC ENGINE ==========
+    function evaluateExpression() {
+        if (expression.trim() === "") {
+            document.getElementById("resultValue").innerText = "0";
+            document.getElementById("errorMsg").innerText = "";
+            return;
+        }
+        
+        try {
             let expr = expression.replace(/\^/g, '**');
-            let res = Function('"use strict"; return (' + expr + ')')();
-            if(engMode && Math.abs(res) >= 1000){
-                if(res >= 1e12) res = (res/1e12).toFixed(6)+" T";
-                else if(res >= 1e9) res = (res/1e9).toFixed(6)+" G";
-                else if(res >= 1e6) res = (res/1e6).toFixed(6)+" M";
-                else if(res >= 1e3) res = (res/1e3).toFixed(6)+" k";
-                else if(res <= 1e-12) res = (res*1e12).toFixed(6)+" p";
-                else if(res <= 1e-9) res = (res*1e9).toFixed(6)+" n";
-                else if(res <= 1e-6) res = (res*1e6).toFixed(6)+" µ";
-                else if(res <= 1e-3) res = (res*1e3).toFixed(6)+" m";
+            const evaluator = new Function('Math', 'angleUnit', 'toRadians', 'fromRadians', `
+                const sin = (x) => Math.sin(toRadians(x));
+                const cos = (x) => Math.cos(toRadians(x));
+                const tan = (x) => Math.tan(toRadians(x));
+                const asin = (x) => fromRadians(Math.asin(x));
+                const acos = (x) => fromRadians(Math.acos(x));
+                const atan = (x) => fromRadians(Math.atan(x));
+                const sqrt = Math.sqrt;
+                const cbrt = Math.cbrt;
+                const ln = Math.log;
+                const log10 = Math.log10;
+                const abs = Math.abs;
+                const pi = Math.PI;
+                const e = Math.E;
+                const pow = Math.pow;
+                const frac = (n, d) => n / d;
+                return (${expr});
+            `);
+            let res = evaluator(Math, angleUnit, toRadians, fromRadians);
+            
+            if (isNaN(res) || !isFinite(res)) throw new Error("Invalid result");
+            
+            if (engMode && Math.abs(res) >= 1000) {
+                if (res >= 1e12) res = (res/1e12).toFixed(6)+" T";
+                else if (res >= 1e9) res = (res/1e9).toFixed(6)+" G";
+                else if (res >= 1e6) res = (res/1e6).toFixed(6)+" M";
+                else if (res >= 1e3) res = (res/1e3).toFixed(6)+" k";
+                else if (res <= 1e-12) res = (res*1e12).toFixed(6)+" p";
+                else if (res <= 1e-9) res = (res*1e9).toFixed(6)+" n";
+                else if (res <= 1e-6) res = (res*1e6).toFixed(6)+" µ";
+                else if (res <= 1e-3) res = (res*1e3).toFixed(6)+" m";
                 else res = res.toFixed(10).replace(/\.?0+$/, '');
                 document.getElementById("resultValue").innerText = res;
             } else {
@@ -352,20 +480,23 @@
                 document.getElementById("resultValue").innerText = disp;
             }
             document.getElementById("errorMsg").innerText = "";
-        } catch(e){ document.getElementById("resultValue").innerText = "?"; document.getElementById("errorMsg").innerText = `⚠️ ${e.message}`; }
+        } catch(e) {
+            document.getElementById("resultValue").innerText = "?";
+            document.getElementById("errorMsg").innerText = `⚠️ ${e.message}`;
+        }
     }
     
-    function addToHistory(){
-        if(expression.trim() === "") return;
+    function addToHistory() {
+        if (expression.trim() === "") return;
         let result = document.getElementById("resultValue").innerText;
         history.unshift({ expr: expression, result: result, time: new Date().toLocaleTimeString() });
-        if(history.length > 20) history.pop();
+        if (history.length > 20) history.pop();
         renderHistory();
     }
     
-    function renderHistory(){
+    function renderHistory() {
         let container = document.getElementById("historyList");
-        if(history.length === 0){
+        if (history.length === 0) {
             container.innerHTML = '<div style="color:var(--text-secondary); text-align:center; padding:20px;">No history yet<br>Click = to save</div>';
             return;
         }
@@ -378,69 +509,80 @@
         `).join('');
     }
     
-    window.recallHistory = function(idx){
-        if(currentActiveMode !== "calc"){
-            alert("Switch to Calculate mode to use history");
-            return;
-        }
+    window.recallHistory = function(idx) {
         expression = history[idx].expr;
         document.getElementById("currentExpr").innerText = expression || "0";
         evaluateExpression();
     };
     
-    function escapeHtml(str){ return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    function escapeHtml(str) { 
+        return str.replace(/[&<>]/g, function(m) { 
+            if (m === '&') return '&amp;'; 
+            if (m === '<') return '&lt;'; 
+            if (m === '>') return '&gt;'; 
+            return m;
+        }); 
+    }
     
-    function appendToExpr(txt){ expression += txt; document.getElementById("currentExpr").innerText = expression || "0"; evaluateExpression(); }
-    function handleAction(action){
-        if(action === "clear") expression = "";
-        else if(action === "back") expression = expression.slice(0,-1);
-        else if(action === "neg") expression = (expression.startsWith("-")?expression.slice(1):"-"+expression);
-        else if(action === "left") appendToExpr("(");
-        else if(action === "right") appendToExpr(")");
-        else if(action === "comma") appendToExpr(",");
-        else if(action === "space") appendToExpr(" ");
-        else if(action === "eval") { addToHistory(); evaluateExpression(); }
-        else if(action === "pi") appendToExpr("Math.PI");
-        else if(action === "e") appendToExpr("Math.E");
-        else if(action === "power") appendToExpr("^");
-        else if(action === "frac") appendToExpr("frac(");
-        else if(action === "help") alert("Scientific: sin,cos,tan,asin,acos,atan,sqrt,cbrt,ln,log10,abs,^,frac(num,den)");
-        else if(["sin","cos","tan","asin","acos","atan","sqrt","cbrt","ln","log10","abs"].includes(action)) appendToExpr(action+"(");
+    function appendToExpr(txt) { 
+        expression += txt; 
+        document.getElementById("currentExpr").innerText = expression || "0"; 
+        evaluateExpression(); 
+    }
+    
+    function handleAction(action) {
+        if (action === "clear") expression = "";
+        else if (action === "back") expression = expression.slice(0, -1);
+        else if (action === "neg") expression = (expression.startsWith("-") ? expression.slice(1) : "-" + expression);
+        else if (action === "left") appendToExpr("(");
+        else if (action === "right") appendToExpr(")");
+        else if (action === "comma") appendToExpr(",");
+        else if (action === "space") appendToExpr(" ");
+        else if (action === "eval") { addToHistory(); evaluateExpression(); }
+        else if (action === "pi") appendToExpr("pi");
+        else if (action === "e") appendToExpr("e");
+        else if (action === "power") appendToExpr("^");
+        else if (action === "frac") appendToExpr("frac(");
+        else if (action === "help") alert("Scientific functions:\n• sin, cos, tan (supports DEG/RAD/GRAD)\n• asin, acos, atan\n• sqrt, cbrt, ln, log10, abs\n• ^ for power\n• frac(num,den) for fractions");
+        else if (["sin", "cos", "tan", "asin", "acos", "atan", "sqrt", "cbrt", "ln", "log10", "abs"].includes(action)) 
+            appendToExpr(action + "(");
         else appendToExpr(action);
+        
         document.getElementById("currentExpr").innerText = expression || "0";
         evaluateExpression();
     }
     
     // ========== UNIT CONVERTER ==========
     const unitData = {
-        length: { meter:1, cm:0.01, mm:0.001, km:1000, inch:0.0254, foot:0.3048, mile:1609.34 },
-        mass: { gram:1, kg:1000, mg:0.001, pound:453.592, ounce:28.3495 },
-        temperature: { celsius:1, fahrenheit: (v)=> (v*9/5+32), kelvin: (v)=> v+273.15, reverse: { celsius: (v)=>v, fahrenheit:(v)=>(v-32)*5/9, kelvin:(v)=>v-273.15 } }
+        length: { meter: 1, cm: 0.01, mm: 0.001, km: 1000, inch: 0.0254, foot: 0.3048, mile: 1609.34 },
+        mass: { gram: 1, kg: 1000, mg: 0.001, pound: 453.592, ounce: 28.3495 },
+        temperature: { celsius: 1, fahrenheit: (v) => (v * 9/5 + 32), kelvin: (v) => v + 273.15 }
     };
-    function populateUnits(){
+    
+    function populateUnits() {
         let type = document.getElementById("unitType").value;
         let fromSel = document.getElementById("fromUnit");
         let toSel = document.getElementById("toUnit");
-        if(type==="temperature"){
-            let units = ["celsius","fahrenheit","kelvin"];
-            fromSel.innerHTML = units.map(u=>`<option value="${u}">${u}</option>`).join('');
-            toSel.innerHTML = units.map(u=>`<option value="${u}">${u}</option>`).join('');
-        } else {
-            let units = Object.keys(unitData[type]);
-            fromSel.innerHTML = units.map(u=>`<option value="${u}">${u}</option>`).join('');
-            toSel.innerHTML = units.map(u=>`<option value="${u}">${u}</option>`).join('');
-        }
+        let units = Object.keys(unitData[type]);
+        fromSel.innerHTML = units.map(u => `<option value="${u}">${u}</option>`).join('');
+        toSel.innerHTML = units.map(u => `<option value="${u}">${u}</option>`).join('');
     }
-    function convertUnits(){
+    
+    function convertUnits() {
         let type = document.getElementById("unitType").value;
         let val = parseFloat(document.getElementById("unitValue").value);
         let from = document.getElementById("fromUnit").value;
         let to = document.getElementById("toUnit").value;
-        if(isNaN(val)){ document.getElementById("unitResult").innerHTML = "Invalid number"; return; }
+        if (isNaN(val)) { document.getElementById("unitResult").innerHTML = "Invalid number"; return; }
         let result;
-        if(type==="temperature"){
-            let celsius = (from==="celsius"?val : from==="fahrenheit"? (val-32)*5/9 : val-273.15);
-            result = (to==="celsius"?celsius : to==="fahrenheit"? celsius*9/5+32 : celsius+273.15);
+        if (type === "temperature") {
+            let celsius;
+            if (from === "celsius") celsius = val;
+            else if (from === "fahrenheit") celsius = (val - 32) * 5/9;
+            else celsius = val - 273.15;
+            if (to === "celsius") result = celsius;
+            else if (to === "fahrenheit") result = celsius * 9/5 + 32;
+            else result = celsius + 273.15;
         } else {
             let inBase = val * unitData[type][from];
             result = inBase / unitData[type][to];
@@ -448,8 +590,45 @@
         document.getElementById("unitResult").innerHTML = `${val} ${from} = ${result.toFixed(6)} ${to}`;
     }
     
-    // ========== MATRIX MODE ==========
-    function renderMatrixUI(){
+    // ========== MODAL FUNCTIONS ==========
+    const modalOverlay = document.getElementById('modalOverlay');
+    const mainContent = document.getElementById('mainContent');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    
+    function openModal(title, content) {
+        modalTitle.innerText = title;
+        modalBody.innerHTML = content;
+        modalOverlay.classList.add('active');
+        mainContent.classList.add('blurred');
+        
+        // Attach events after content is loaded
+        if (title.includes('Matrix')) attachMatrixEvents();
+        else if (title.includes('Vector')) attachVectorEvents();
+        else if (title.includes('Statistics')) attachStatsEvents();
+        else if (title.includes('Distribution')) attachDistEvents();
+        else if (title.includes('Table')) attachTableEvents();
+        else if (title.includes('Equation')) attachEquationEvents();
+        else if (title.includes('Inequality')) attachInequalityEvents();
+        else if (title.includes('Ratio')) attachRatioEvents();
+        else if (title.includes('Complex')) attachComplexEvents();
+        else if (title.includes('Base')) attachBaseEvents();
+        else if (title.includes('Angle')) attachAngleEvents();
+        else if (title.includes('Engineer')) attachEngineerEvents();
+    }
+    
+    function closeModal() {
+        modalOverlay.classList.remove('active');
+        mainContent.classList.remove('blurred');
+    }
+    
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closeModal();
+    });
+    
+    // ========== MATRIX MODAL CONTENT (YOUR ORIGINAL WORKING CODE) ==========
+    function getMatrixContent() {
         return `<div class="section-title">📊 MATRIX OPERATIONS</div>
             <div class="input-group"><span>Number of matrices:</span><input type="number" id="numMatrices" class="input-field" value="2" min="1" max="4" style="width:80px"><button class="action-btn" id="createMatricesBtn">Create</button></div>
             <div id="matricesContainer"></div>
@@ -457,7 +636,7 @@
             <div id="matrixResult" class="data-item">Result will appear here</div>`;
     }
     
-    function attachMatrixEvents(){
+    function attachMatrixEvents() {
         document.getElementById("createMatricesBtn")?.addEventListener("click", () => {
             let num = parseInt(document.getElementById("numMatrices").value);
             let container = document.getElementById("matricesContainer");
@@ -519,8 +698,8 @@
         document.getElementById("createMatricesBtn")?.click();
     }
     
-    // ========== VECTOR MODE ==========
-    function renderVectorUI(){
+    // ========== VECTOR MODAL (YOUR ORIGINAL WORKING CODE) ==========
+    function getVectorContent() {
         return `<div class="section-title">➡️ VECTOR OPERATIONS</div>
             <div class="matrix-card"><div><strong>Vector A:</strong> <input type="number" id="vecAx" class="input-field" placeholder="x" value="1" step="any" style="width:80px"> <input type="number" id="vecAy" class="input-field" placeholder="y" value="2" step="any" style="width:80px"> <input type="number" id="vecAz" class="input-field" placeholder="z" value="3" step="any" style="width:80px"></div>
             <div><strong>Vector B:</strong> <input type="number" id="vecBx" class="input-field" placeholder="x" value="4" step="any" style="width:80px"> <input type="number" id="vecBy" class="input-field" placeholder="y" value="5" step="any" style="width:80px"> <input type="number" id="vecBz" class="input-field" placeholder="z" value="6" step="any" style="width:80px"></div></div>
@@ -528,7 +707,7 @@
             <div id="vectorResult" class="data-item">Result</div>`;
     }
     
-    function attachVectorEvents(){
+    function attachVectorEvents() {
         document.getElementById("vecDot")?.addEventListener("click",()=>{
             let ax=parseFloat(document.getElementById("vecAx").value), ay=parseFloat(document.getElementById("vecAy").value), az=parseFloat(document.getElementById("vecAz").value);
             let bx=parseFloat(document.getElementById("vecBx").value), by=parseFloat(document.getElementById("vecBy").value), bz=parseFloat(document.getElementById("vecBz").value);
@@ -558,15 +737,15 @@
         });
     }
     
-    // ========== STATISTICS MODE ==========
-    function renderStatsUI(){
+    // ========== STATISTICS MODAL ==========
+    function getStatsContent() {
         return `<div class="section-title">📈 STATISTICS</div>
             <textarea id="statsData" class="input-field" rows="3" placeholder="Enter numbers: 1,2,3,4,5,6,7,8,9,10" style="width:100%">1,2,3,4,5,6,7,8,9,10</textarea>
             <div class="input-group"><button class="action-btn" id="statsMean">Mean</button><button class="action-btn" id="statsMedian">Median</button><button class="action-btn" id="statsStd">Std Dev</button><button class="action-btn" id="statsSum">Sum</button><button class="action-btn" id="statsVar">Variance</button><button class="action-btn" id="statsMin">Min</button><button class="action-btn" id="statsMax">Max</button></div>
             <div id="statsResult" class="data-item">Result</div>`;
     }
     
-    function attachStatsEvents(){
+    function attachStatsEvents() {
         let getData = () => document.getElementById("statsData").value.split(',').map(Number).filter(v=>!isNaN(v));
         document.getElementById("statsMean")?.addEventListener("click",()=>{ let d=getData(); document.getElementById("statsResult").innerHTML = `Mean = ${(d.reduce((a,b)=>a+b,0)/d.length).toFixed(6)}`; });
         document.getElementById("statsMedian")?.addEventListener("click",()=>{ let d=getData().sort((a,b)=>a-b); let m=Math.floor(d.length/2); document.getElementById("statsResult").innerHTML = `Median = ${d.length%2===0?(d[m-1]+d[m])/2:d[m]}`; });
@@ -577,8 +756,8 @@
         document.getElementById("statsMax")?.addEventListener("click",()=>{ document.getElementById("statsResult").innerHTML = `Max = ${Math.max(...getData())}`; });
     }
     
-    // ========== DISTRIBUTION MODE ==========
-    function renderDistributionUI(){
+    // ========== DISTRIBUTION MODAL ==========
+    function getDistContent() {
         return `<div class="section-title">📉 DISTRIBUTION</div>
             <select id="distType" class="select-field" style="width:100%; margin-bottom:12px">
                 <option value="npd">Normal PD (P(X=x))</option><option value="ncd">Normal CD (P(X≤x))</option>
@@ -590,7 +769,7 @@
             <div id="distResult" class="data-item">Result</div>`;
     }
     
-    function attachDistributionEvents(){
+    function attachDistEvents() {
         function updateParams(){
             let type = document.getElementById("distType").value;
             let html = "";
@@ -614,15 +793,15 @@
         updateParams();
     }
     
-    // ========== TABLE MODE ==========
-    function renderTableUI(){
+    // ========== TABLE MODAL ==========
+    function getTableContent() {
         return `<div class="section-title">📋 FUNCTION TABLE</div>
             <div class="input-group"><input type="text" id="tableFunc" class="input-field" placeholder="f(x) = x^2" value="x^2" style="flex:2"><span>Start:</span><input type="number" id="tableStart" class="input-field" value="0"><span>End:</span><input type="number" id="tableEnd" class="input-field" value="5"><span>Step:</span><input type="number" id="tableStep" class="input-field" value="1"></div>
             <button class="action-btn" id="genTable">Generate Table</button>
             <div id="tableResult" class="data-item" style="max-height:250px; overflow-y:auto;">Table will appear</div>`;
     }
     
-    function attachTableEvents(){
+    function attachTableEvents() {
         document.getElementById("genTable")?.addEventListener("click",()=>{
             let funcStr = document.getElementById("tableFunc").value;
             let start = parseFloat(document.getElementById("tableStart").value);
@@ -638,8 +817,8 @@
         });
     }
     
-    // ========== EQUATION MODE ==========
-    function renderEquationUI(){
+    // ========== EQUATION MODAL ==========
+    function getEquationContent() {
         return `<div class="section-title">⚖️ EQUATION SOLVER</div>
             <select id="eqType" class="select-field" style="width:100%; margin-bottom:12px">
                 <option value="quad">Quadratic (ax² + bx + c = 0)</option>
@@ -650,7 +829,7 @@
             <div id="equationResult" class="data-item">Enter coefficients and click Solve</div>`;
     }
     
-    function attachEquationEvents(){
+    function attachEquationEvents() {
         function updateEqParams(){
             let type = document.getElementById("eqType").value;
             let html = "";
@@ -700,15 +879,15 @@
         updateEqParams();
     }
     
-    // ========== INEQUALITY MODE ==========
-    function renderInequalityUI(){
+    // ========== INEQUALITY MODAL ==========
+    function getInequalityContent() {
         return `<div class="section-title">≷ INEQUALITY SOLVER ( > 0 )</div>
             <div class="input-group">Quadratic: <input type="number" id="iq_a" class="input-field" placeholder="a" value="1" step="any"> x² + <input type="number" id="iq_b" class="input-field" placeholder="b" value="2" step="any"> x + <input type="number" id="iq_c" class="input-field" placeholder="c" value="1" step="any"> > 0</div>
             <button class="action-btn" id="solveIneq">Solve Inequality</button>
             <div id="inequalityResult" class="data-item">Enter coefficients and click Solve</div>`;
     }
     
-    function attachInequalityEvents(){
+    function attachInequalityEvents() {
         document.getElementById("solveIneq")?.addEventListener("click", () => {
             let a = parseFloat(document.getElementById("iq_a")?.value || 0);
             let b = parseFloat(document.getElementById("iq_b")?.value || 0);
@@ -738,15 +917,15 @@
         });
     }
     
-    // ========== RATIO MODE ==========
-    function renderRatioUI(){
+    // ========== RATIO MODAL ==========
+    function getRatioContent() {
         return `<div class="section-title">🔁 RATIO SOLVER</div>
-            <div class="input-group">A: <input type="number" id="rA" class="input-field" value="2" step="any" style="width:80px"> = B: <input type="number" id="rB" class="input-field" value="3" step="any" style="width:80px"> = C: <input type="number" id="rC" class="input-field" value="4" step="any" style="width:80px"> = D: ?</div>
+            <div class="input-group">A: <input type="number" id="rA" class="input-field" value="2" step="any" style="width:80px"> : B: <input type="number" id="rB" class="input-field" value="3" step="any" style="width:80px"> = C: <input type="number" id="rC" class="input-field" value="4" step="any" style="width:80px"> : D: ?</div>
             <button class="action-btn" id="calcRatio">Calculate D</button>
             <div id="ratioResult" class="data-item">Enter values and click Calculate</div>`;
     }
     
-    function attachRatioEvents(){
+    function attachRatioEvents() {
         document.getElementById("calcRatio")?.addEventListener("click", () => {
             let A = parseFloat(document.getElementById("rA")?.value || 1);
             let B = parseFloat(document.getElementById("rB")?.value || 1);
@@ -760,15 +939,15 @@
         });
     }
     
-    // ========== COMPLEX MODE ==========
-    function renderComplexUI(){
+    // ========== COMPLEX MODAL ==========
+    function getComplexContent() {
         return `<div class="section-title">🔢 COMPLEX NUMBERS</div>
             <div class="input-group"><input id="cReal" type="number" class="input-field" placeholder="Real part" value="3" step="any"><input id="cImag" type="number" class="input-field" placeholder="Imag part" value="4" step="any"></div>
             <div class="input-group"><button class="action-btn" id="cMagnitude">Magnitude</button><button class="action-btn" id="cConjugate">Conjugate</button><button class="action-btn" id="cPhase">Phase (angle)</button></div>
             <div id="cResult" class="data-item">Result will appear here</div>`;
     }
     
-    function attachComplexEvents(){
+    function attachComplexEvents() {
         document.getElementById("cMagnitude")?.addEventListener("click",()=>{
             let r=parseFloat(document.getElementById("cReal")?.value||0), i=parseFloat(document.getElementById("cImag")?.value||0);
             document.getElementById("cResult").innerHTML = `Magnitude = ${Math.hypot(r,i).toFixed(6)}`;
@@ -784,8 +963,8 @@
         });
     }
     
-    // ========== BASE-N MODE ==========
-    function renderBaseUI(){
+    // ========== BASE-N MODAL ==========
+    function getBaseContent() {
         return `<div class="section-title">💠 BASE-N CONVERTER</div>
             <div class="input-group"><select id="baseFromType" class="select-field"><option value="10">Decimal</option><option value="2">Binary</option><option value="8">Octal</option><option value="16">Hexadecimal</option></select>
             <input id="baseInput" type="text" class="input-field" placeholder="Enter number" value="255" style="flex:2"></div>
@@ -795,7 +974,7 @@
             <button class="action-btn" id="showAllBases" style="margin-top:8px; width:100%">Show All Bases</button>`;
     }
     
-    function attachBaseEvents(){
+    function attachBaseEvents() {
         document.getElementById("convBase")?.addEventListener("click", () => {
             let fromBase = parseInt(document.getElementById("baseFromType").value);
             let inputStr = document.getElementById("baseInput").value;
@@ -839,100 +1018,70 @@
         });
     }
     
-    // ========== ANGLE & ENGINEER MODES ==========
-    function renderAngleUI(){
+    // ========== ANGLE MODAL ==========
+    function getAngleContent() {
         return `<div class="section-title">📐 ANGLE UNIT</div>
             <div class="input-group"><button class="action-btn" id="setRad">Radian</button><button class="action-btn" id="setDeg">Degree</button><button class="action-btn" id="setGrad">Gradian</button></div>
             <div id="angStatus" class="data-item">Current: ${angleUnit}</div>`;
     }
     
-    function renderEngineerUI(){
+    function attachAngleEvents() {
+        document.getElementById("setRad")?.addEventListener("click",()=>{ angleUnit="RAD"; document.getElementById("angStatus").innerHTML = "Current: RADIAN"; evaluateExpression(); });
+        document.getElementById("setDeg")?.addEventListener("click",()=>{ angleUnit="DEG"; document.getElementById("angStatus").innerHTML = "Current: DEGREE"; evaluateExpression(); });
+        document.getElementById("setGrad")?.addEventListener("click",()=>{ angleUnit="GRAD"; document.getElementById("angStatus").innerHTML = "Current: GRADIAN"; evaluateExpression(); });
+    }
+    
+    // ========== ENGINEER MODAL ==========
+    function getEngineerContent() {
         return `<div class="section-title">⚡ ENGINEER SYMBOL</div>
             <button class="action-btn" id="toggleEngBtn">Toggle: ${engMode ? "ON" : "OFF"}</button>
             <div class="data-item">k(10³), M(10⁶), G(10⁹), m(10⁻³), µ(10⁻⁶), n(10⁻⁹), p(10⁻¹²)</div>
             <div class="data-item">Current mode: ${engMode ? "Engineer symbols ON" : "Normal display"}</div>`;
     }
     
-    function attachAngleEvents(){
-        document.getElementById("setRad")?.addEventListener("click",()=>{ angleUnit="RAD"; document.getElementById("angStatus").innerHTML = "Current: RADIAN"; });
-        document.getElementById("setDeg")?.addEventListener("click",()=>{ angleUnit="DEG"; document.getElementById("angStatus").innerHTML = "Current: DEGREE"; });
-        document.getElementById("setGrad")?.addEventListener("click",()=>{ angleUnit="GRAD"; document.getElementById("angStatus").innerHTML = "Current: GRADIAN"; });
+    function attachEngineerEvents() {
+        document.getElementById("toggleEngBtn")?.addEventListener("click",()=>{ engMode = !engMode; evaluateExpression(); closeModal(); });
     }
     
-    // ========== MODE SWITCHING ==========
-    function enableCalculator(enable){
-        let calcButtons = document.getElementById("calcButtons");
-        if(enable) calcButtons.classList.remove("disabled-calc");
-        else calcButtons.classList.add("disabled-calc");
-    }
-    
-    function renderCurrentMode(mode){
-        currentActiveMode = mode;
-        let html = "";
-        
-        if(mode === "calc"){
-            enableCalculator(true);
-            html = `<div class="section-title">✅ SCIENTIFIC CALCULATOR</div>
-                    <div class="data-item">• Use ^ for power (5^4=625)</div>
-                    <div class="data-item">• frac(num,den) for fractions</div>
-                    <div class="data-item">• sin/cos/tan with DEG/RAD/GRAD</div>
-                    <div class="data-item">• Click = to save to history</div>`;
-            document.getElementById("dynamicContent").innerHTML = html;
-            return;
-        }
-        
-        enableCalculator(false);
-        
-        if(mode === "matrix") html = renderMatrixUI();
-        else if(mode === "vector") html = renderVectorUI();
-        else if(mode === "stats") html = renderStatsUI();
-        else if(mode === "dist") html = renderDistributionUI();
-        else if(mode === "table") html = renderTableUI();
-        else if(mode === "equation") html = renderEquationUI();
-        else if(mode === "inequality") html = renderInequalityUI();
-        else if(mode === "ratio") html = renderRatioUI();
-        else if(mode === "complex") html = renderComplexUI();
-        else if(mode === "base") html = renderBaseUI();
-        else if(mode === "angle") html = renderAngleUI();
-        else if(mode === "eng") html = renderEngineerUI();
-        
-        document.getElementById("dynamicContent").innerHTML = html;
-        
-        if(mode === "matrix") attachMatrixEvents();
-        else if(mode === "vector") attachVectorEvents();
-        else if(mode === "stats") attachStatsEvents();
-        else if(mode === "dist") attachDistributionEvents();
-        else if(mode === "table") attachTableEvents();
-        else if(mode === "equation") attachEquationEvents();
-        else if(mode === "inequality") attachInequalityEvents();
-        else if(mode === "ratio") attachRatioEvents();
-        else if(mode === "complex") attachComplexEvents();
-        else if(mode === "base") attachBaseEvents();
-        else if(mode === "angle") attachAngleEvents();
-        else if(mode === "eng"){
-            document.getElementById("toggleEngBtn")?.addEventListener("click",()=>{ engMode = !engMode; renderCurrentMode("eng"); });
-        }
-    }
-    
-    document.querySelectorAll(".mode-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            renderCurrentMode(btn.getAttribute("data-mode"));
+    // ========== MODE BUTTON HANDLERS ==========
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.getAttribute('data-mode');
+            let title = '';
+            let content = '';
+            
+            switch(mode) {
+                case 'matrix': title = '📊 Matrix Operations'; content = getMatrixContent(); break;
+                case 'vector': title = '➡️ Vector Operations'; content = getVectorContent(); break;
+                case 'stats': title = '📈 Statistics'; content = getStatsContent(); break;
+                case 'dist': title = '📉 Distribution'; content = getDistContent(); break;
+                case 'table': title = '📋 Function Table'; content = getTableContent(); break;
+                case 'equation': title = '⚖️ Equation Solver'; content = getEquationContent(); break;
+                case 'inequality': title = '≷ Inequality Solver'; content = getInequalityContent(); break;
+                case 'ratio': title = '🔁 Ratio Solver'; content = getRatioContent(); break;
+                case 'complex': title = '🔢 Complex Numbers'; content = getComplexContent(); break;
+                case 'base': title = '💠 Base-N Converter'; content = getBaseContent(); break;
+                case 'angle': title = '📐 Angle Unit'; content = getAngleContent(); break;
+                case 'eng': title = '⚡ Engineer Symbol'; content = getEngineerContent(); break;
+                default: return;
+            }
+            openModal(title, content);
         });
     });
     
+    // ========== CALCULATOR BUTTON HANDLERS ==========
     document.querySelectorAll(".calc-panel button").forEach(btn => {
         btn.addEventListener("click", () => {
-            if(currentActiveMode !== "calc"){
-                alert("Please switch to Calculate mode first");
-                return;
-            }
             let tok = btn.getAttribute("data-token");
             let func = btn.getAttribute("data-func");
-            if(tok){ let r=tok; if(tok==="÷") r="/"; if(tok==="×") r="*"; if(tok==="−") r="-"; appendToExpr(r); }
-            else if(func) handleAction(func);
-            else if(btn.innerText==="=") handleAction("eval");
+            if (tok) { 
+                let r = tok; 
+                if (tok === "÷") r = "/"; 
+                if (tok === "×") r = "*"; 
+                if (tok === "−") r = "-"; 
+                appendToExpr(r); 
+            } else if (func) handleAction(func);
+            else if (btn.innerText === "=") handleAction("eval");
         });
     });
     
@@ -940,17 +1089,19 @@
     document.getElementById("unitType")?.addEventListener("change", populateUnits);
     document.getElementById("doConvert")?.addEventListener("click", convertUnits);
     
-    window.addEventListener("keydown", (e)=>{
-        if(currentActiveMode !== "calc") return;
-        if(e.key==="Enter"){ e.preventDefault(); handleAction("eval"); }
-        else if(e.key==="Backspace"){ e.preventDefault(); handleAction("back"); }
-        else if(e.key==="Escape"){ e.preventDefault(); handleAction("clear"); }
-        else if(/^[\d+\-*/() .,]$/.test(e.key)){ e.preventDefault(); appendToExpr(e.key); }
-        else if(e.key === "^"){ e.preventDefault(); appendToExpr("^"); }
+    window.addEventListener("keydown", (e) => {
+        if (modalOverlay.classList.contains('active')) {
+            if (e.key === 'Escape') closeModal();
+            return;
+        }
+        if (e.key === "Enter") { e.preventDefault(); handleAction("eval"); }
+        else if (e.key === "Backspace") { e.preventDefault(); handleAction("back"); }
+        else if (e.key === "Escape") { e.preventDefault(); handleAction("clear"); }
+        else if (/^[\d+\-*/() .,]$/.test(e.key)) { e.preventDefault(); appendToExpr(e.key); }
+        else if (e.key === "^") { e.preventDefault(); appendToExpr("^"); }
     });
     
     populateUnits();
-    renderCurrentMode("calc");
     document.getElementById("currentExpr").innerText = "0";
 </script>
 </body>
