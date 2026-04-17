@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CASIO CLASSWIZ | Complete Scientific Calculator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0a1118 0%, #0c1420 100%);
+            font-family: 'Segoe UI', 'Roboto', 'Fira Code', monospace;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .app-container { max-width: 1600px; margin: 0 auto; }
+        .mode-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: #0a101a;
+            padding: 12px 16px;
+            border-radius: 60px;
+            border: 1px solid #2a4058;
+        }
+        .mode-btn {
+            background: #16232e;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            color: #bbd4ff;
+            font-size: 0.7rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        .mode-btn.active { background: #2a6d8f; color: white; box-shadow: 0 0 8px rgba(42,109,143,0.5); }
+        .mode-btn:active { transform: scale(0.96); }
+        .main-content { display: flex; gap: 20px; flex-wrap: wrap; }
+        .calc-panel {
+            flex: 2;
+            min-width: 420px;
+            background: #0f1724;
+            border-radius: 32px;
+            padding: 20px;
+            border: 1px solid #2a3f58;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .side-panel {
+            flex: 1.2;
+            min-width: 380px;
+            background: #0a101a;
+            border-radius: 32px;
+            padding: 20px;
+            border: 1px solid #2a3a4a;
+            overflow-y: auto;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .history-section, .unit-section, .mode-section {
+            background: #0c1620;
+            border-radius: 24px;
+            padding: 16px;
+        }
+        .display-area {
+            background: #01060c;
+            border-radius: 24px;
+            padding: 18px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 3px 8px rgba(0,0,0,0.5);
+        }
+        .current-expression {
+            font-size: 1.4rem;
+            font-family: 'Fira Code', monospace;
+            color: #eef4ff;
+            word-break: break-all;
+            min-height: 60px;
+        }
+        .result-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; padding-top: 8px; border-top: 1px solid #1e3347; }
+        .result-value { font-size: 1.8rem; font-weight: 700; color: #f5d742; font-family: monospace; }
+        .error-msg { background: #3a1a1a; color: #ffaa99; font-size: 0.7rem; padding: 6px; border-radius: 20px; margin-top: 8px; text-align: center; }
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+        button {
+            background: #16232e;
+            border: none;
+            padding: 12px 0;
+            border-radius: 18px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #eef5ff;
+            cursor: pointer;
+            transition: 0.05s linear;
+            box-shadow: 0 2px 0 #03080f;
+        }
+        button:active { transform: translateY(2px); box-shadow: none; }
+        .func-key { background: #1f3543; font-size: 0.7rem; }
+        .sci-key { background: #0e2d3b; color: #ffe0a3; }
+        .op-key { background: #2a4058; color: #ffd966; }
+        .equal-key { background: #2a6d8f; color: white; }
+        .clear-key { background: #6a2e3a; }
+        .disabled-calc { opacity: 0.5; pointer-events: none; }
+        .section-title { color: #f5d742; font-size: 0.9rem; margin: 0 0 12px 0; font-weight: bold; border-left: 3px solid #f5d742; padding-left: 12px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+        .input-field, .select-field {
+            background: #1e2f3e;
+            border: 1px solid #2a5a70;
+            padding: 8px 12px;
+            border-radius: 14px;
+            color: white;
+            font-size: 0.75rem;
+        }
+        .input-field:focus { outline: none; border-color: #f5d742; }
+        .action-btn { background: #216477; padding: 8px 16px; border-radius: 24px; font-size: 0.75rem; font-weight: bold; cursor: pointer; border: none; color: white; }
+        .action-btn:active { transform: scale(0.96); }
+        .matrix-grid { display: inline-grid; gap: 8px; margin: 10px 0; background: #0c1620; padding: 12px; border-radius: 16px; }
+        .matrix-input { width: 70px; text-align: center; background: #1e2f3e; border: 1px solid #2a5a70; padding: 6px; border-radius: 8px; color: white; }
+        .data-item { background: #0c1620; padding: 12px; margin-top: 12px; border-radius: 16px; font-size: 0.8rem; color: #bbd4ff; word-break: break-all; max-height: 200px; overflow-y: auto; }
+        .history-list { max-height: 200px; overflow-y: auto; }
+        .history-item { background: #0c1620; padding: 10px; margin-bottom: 8px; border-radius: 12px; cursor: pointer; border-left: 3px solid #f5d742; }
+        .history-item:hover { background: #1a2a3a; transform: translateX(3px); }
+        .history-expr { color: #bbd4ff; font-size: 0.75rem; }
+        .history-result { color: #f5d742; font-size: 0.7rem; margin-top: 4px; }
+        footer { font-size: 0.6rem; text-align: center; margin-top: 15px; color: #4b6e8a; }
+        .matrix-card { background: #0c1620; padding: 12px; border-radius: 16px; margin-bottom: 15px; }
+        @media (max-width: 1000px) { .main-content { flex-direction: column; } .calc-panel { min-width: auto; } }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="mode-nav">
+        <button class="mode-btn active" data-mode="calc">🧮 Calculate</button>
+        <button class="mode-btn" data-mode="matrix">📊 Matrix</button>
+        <button class="mode-btn" data-mode="vector">➡️ Vector</button>
+        <button class="mode-btn" data-mode="stats">📈 Statistics</button>
+        <button class="mode-btn" data-mode="dist">📉 Distribution</button>
+        <button class="mode-btn" data-mode="table">📋 Table</button>
+        <button class="mode-btn" data-mode="equation">⚖️ Equation</button>
+        <button class="mode-btn" data-mode="inequality">≷ Inequality</button>
+        <button class="mode-btn" data-mode="ratio">🔁 Ratio</button>
+        <button class="mode-btn" data-mode="complex">🔢 Complex</button>
+        <button class="mode-btn" data-mode="base">💠 Base-N</button>
+        <button class="mode-btn" data-mode="angle">📐 Angle</button>
+        <button class="mode-btn" data-mode="eng">⚡ Engineer</button>
+    </div>
+
+    <div class="main-content">
+        <div class="calc-panel" id="calcPanel">
+            <div class="display-area">
+                <div class="current-expression" id="currentExpr">0</div>
+                <div class="result-row"><span class="result-value" id="resultValue">0</span></div>
+                <div id="errorMsg" class="error-msg"></div>
+            </div>
+            <div class="buttons-grid" id="calcButtons">
+                <button class="sci-key" data-func="sin">sin</button><button class="sci-key" data-func="cos">cos</button>
+                <button class="sci-key" data-func="tan">tan</button><button class="sci-key" data-func="asin">sin⁻¹</button>
+                <button class="sci-key" data-func="acos">cos⁻¹</button><button class="sci-key" data-func="atan">tan⁻¹</button>
+                <button class="sci-key" data-func="sqrt">√</button><button class="sci-key" data-func="cbrt">∛</button>
+                <button class="sci-key" data-func="ln">ln</button><button class="sci-key" data-func="log10">log₁₀</button>
+                <button class="sci-key" data-func="abs">|x|</button><button class="func-key" data-func="pi">π</button>
+                <button data-token="7">7</button><button data-token="8">8</button><button data-token="9">9</button>
+                <button class="op-key" data-token="/">÷</button><button class="func-key" data-func="power">xʸ</button>
+                <button class="func-key" data-func="frac">a⁄b</button>
+                <button data-token="4">4</button><button data-token="5">5</button><button data-token="6">6</button>
+                <button class="op-key" data-token="*">×</button><button class="func-key" data-func="left">(</button>
+                <button class="func-key" data-func="right">)</button>
+                <button data-token="1">1</button><button data-token="2">2</button><button data-token="3">3</button>
+                <button class="op-key" data-token="-">−</button><button class="func-key" data-func="comma">,</button>
+                <button class="func-key" data-func="e">e</button>
+                <button data-token="0">0</button><button data-token=".">.</button><button class="func-key" data-func="neg">+/−</button>
+                <button class="op-key" data-token="+">+</button><button class="clear-key" data-func="clear">AC</button>
+                <button class="func-key" data-func="back">⌫</button>
+                <button class="equal-key" data-func="eval" style="grid-column: span 2;">= EXE</button>
+                <button class="func-key" data-func="space">SPACE</button><button class="func-key" data-func="help">❔</button>
+            </div>
+            <footer>▸ ^ for power | Only active in Calculate mode | Type directly in any field</footer>
+        </div>
+
+        <div class="side-panel">
+            <div class="history-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span class="section-title" style="margin:0">📜 HISTORY</span>
+                    <button id="clearHistoryBtn" class="action-btn" style="background:#6a2e3a; padding:4px 12px;">Clear</button>
+                </div>
+                <div id="historyList" class="history-list">
+                    <div style="color:#4a6e8a; text-align:center; padding:20px;">No history yet<br>Click = to save</div>
+                </div>
+            </div>
+
+            <div class="unit-section">
+                <div class="section-title" style="margin-top:0">📐 UNIT CONVERTER</div>
+                <div class="input-group"><select id="unitType" class="select-field"><option value="length">Length</option><option value="mass">Mass</option><option value="temperature">Temperature</option></select></div>
+                <div class="input-group"><input type="number" id="unitValue" class="input-field" placeholder="Value" value="1" step="any"><select id="fromUnit" class="select-field"></select><span>→</span><select id="toUnit" class="select-field"></select><button id="doConvert" class="action-btn">Convert</button></div>
+                <div id="unitResult" class="data-item" style="margin-top:8px">0</div>
+            </div>
+
+            <div class="mode-section" id="dynamicContent">
+                <div class="section-title">📌 Current Mode</div>
+                <div class="data-item">Select a mode from top bar</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== SCIENTIFIC ENGINE ==========
+    let expression = "";
+    let angleUnit = "RAD";
+    let engMode = false;
+    let history = [];
+    let currentActiveMode = "calc";
+    
+    function evaluateExpression(){
+        if(expression.trim() === ""){ document.getElementById("resultValue").innerText = "0"; document.getElementById("errorMsg").innerText = ""; return; }
+        try{
+            let expr = expression.replace(/\^/g, '**');
+            let res = Function('"use strict"; return (' + expr + ')')();
+            if(engMode && Math.abs(res) >= 1000){
+                if(res >= 1e12) res = (res/1e12).toFixed(6)+" T";
+                else if(res >= 1e9) res = (res/1e9).toFixed(6)+" G";
+                else if(res >= 1e6) res = (res/1e6).toFixed(6)+" M";
+                else if(res >= 1e3) res = (res/1e3).toFixed(6)+" k";
+                else if(res <= 1e-12) res = (res*1e12).toFixed(6)+" p";
+                else if(res <= 1e-9) res = (res*1e9).toFixed(6)+" n";
+                else if(res <= 1e-6) res = (res*1e6).toFixed(6)+" µ";
+                else if(res <= 1e-3) res = (res*1e3).toFixed(6)+" m";
+                else res = res.toFixed(10).replace(/\.?0+$/, '');
+                document.getElementById("resultValue").innerText = res;
+            } else {
+                let disp = res.toFixed(10).replace(/\.?0+$/, '');
+                document.getElementById("resultValue").innerText = disp;
+            }
+            document.getElementById("errorMsg").innerText = "";
+        } catch(e){ document.getElementById("resultValue").innerText = "?"; document.getElementById("errorMsg").innerText = `⚠️ ${e.message}`; }
+    }
+    
+    function addToHistory(){
+        if(expression.trim() === "") return;
+        let result = document.getElementById("resultValue").innerText;
+        history.unshift({ expr: expression, result: result, time: new Date().toLocaleTimeString() });
+        if(history.length > 20) history.pop();
+        renderHistory();
+    }
+    
+    function renderHistory(){
+        let container = document.getElementById("historyList");
+        if(history.length === 0){
+            container.innerHTML = '<div style="color:#4a6e8a; text-align:center; padding:20px;">No history yet<br>Click = to save</div>';
+            return;
+        }
+        container.innerHTML = history.map((item, idx) => `
+            <div class="history-item" onclick="recallHistory(${idx})">
+                <div class="history-expr">${escapeHtml(item.expr)}</div>
+                <div class="history-result">= ${escapeHtml(item.result)}</div>
+                <div style="font-size:0.6rem; color:#5e7e9e;">${item.time}</div>
+            </div>
+        `).join('');
+    }
+    
+    window.recallHistory = function(idx){
+        if(currentActiveMode !== "calc"){
+            alert("Switch to Calculate mode to use history");
+            return;
+        }
+        expression = history[idx].expr;
+        document.getElementById("currentExpr").innerText = expression || "0";
+        evaluateExpression();
+    };
+    
+    function escapeHtml(str){ return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    
+    function appendToExpr(txt){ expression += txt; document.getElementById("currentExpr").innerText = expression || "0"; evaluateExpression(); }
+    function handleAction(action){
+        if(action === "clear") expression = "";
+        else if(action === "back") expression = expression.slice(0,-1);
+        else if(action === "neg") expression = (expression.startsWith("-")?expression.slice(1):"-"+expression);
+        else if(action === "left") appendToExpr("(");
+        else if(action === "right") appendToExpr(")");
+        else if(action === "comma") appendToExpr(",");
+        else if(action === "space") appendToExpr(" ");
+        else if(action === "eval") { addToHistory(); evaluateExpression(); }
+        else if(action === "pi") appendToExpr("Math.PI");
+        else if(action === "e") appendToExpr("Math.E");
+        else if(action === "power") appendToExpr("^");
+        else if(action === "frac") appendToExpr("frac(");
+        else if(action === "help") alert("Scientific: sin,cos,tan,asin,acos,atan,sqrt,cbrt,ln,log10,abs,^,frac(num,den)");
+        else if(["sin","cos","tan","asin","acos","atan","sqrt","cbrt","ln","log10","abs"].includes(action)) appendToExpr(action+"(");
+        else appendToExpr(action);
+        document.getElementById("currentExpr").innerText = expression || "0";
+        evaluateExpression();
+    }
+    
+    // ========== UNIT CONVERTER ==========
+    const unitData = {
+        length: { meter:1, cm:0.01, mm:0.001, km:1000, inch:0.0254, foot:0.3048, mile:1609.34 },
+        mass: { gram:1, kg:1000, mg:0.001, pound:453.592, ounce:28.3495 },
+        temperature: { celsius:1, fahrenheit: (v)=> (v*9/5+32), kelvin: (v)=> v+273.15, reverse: { celsius: (v)=>v, fahrenheit:(v)=>(v-32)*5/9, kelvin:(v)=>v-273.15 } }
+    };
+    function populateUnits(){
+        let type = document.getElementById("unitType").value;
+        let fromSel = document.getElementById("fromUnit");
+        let toSel = document.getElementById("toUnit");
+        if(type==="temperature"){
+            let units = ["celsius","fahrenheit","kelvin"];
+            fromSel.innerHTML = units.map(u=>`<option value="${u}">${u}</option>`).join('');
+            toSel.innerHTML = units.map(u=>`<option value="${u}">${u}</option>`).join('');
+        } else {
+            let units = Object.keys(unitData[type]);
+            fromSel.innerHTML = units.map(u=>`<option value="${u}">${u}</option>`).join('');
+            toSel.innerHTML = units.map(u=>`<option value="${u}">${u}</option>`).join('');
+        }
+    }
+    function convertUnits(){
+        let type = document.getElementById("unitType").value;
+        let val = parseFloat(document.getElementById("unitValue").value);
+        let from = document.getElementById("fromUnit").value;
+        let to = document.getElementById("toUnit").value;
+        if(isNaN(val)){ document.getElementById("unitResult").innerHTML = "Invalid number"; return; }
+        let result;
+        if(type==="temperature"){
+            let celsius = (from==="celsius"?val : from==="fahrenheit"? (val-32)*5/9 : val-273.15);
+            result = (to==="celsius"?celsius : to==="fahrenheit"? celsius*9/5+32 : celsius+273.15);
+        } else {
+            let inBase = val * unitData[type][from];
+            result = inBase / unitData[type][to];
+        }
+        document.getElementById("unitResult").innerHTML = `${val} ${from} = ${result.toFixed(6)} ${to}`;
+    }
+    
+    // ========== MATRIX MODE ==========
+    function renderMatrixUI(){
+        return `<div class="section-title">📊 MATRIX OPERATIONS</div>
+            <div class="input-group"><span>Number of matrices:</span><input type="number" id="numMatrices" class="input-field" value="2" min="1" max="4" style="width:80px"><button class="action-btn" id="createMatricesBtn">Create</button></div>
+            <div id="matricesContainer"></div>
+            <div class="input-group"><select id="opMatrix1" class="select-field"></select><select id="matrixOp" class="select-field"><option value="add">+</option><option value="sub">-</option><option value="mul">×</option></select><select id="opMatrix2" class="select-field"></select><button class="action-btn" id="matrixOpBtn">Calculate</button><button class="action-btn" id="matrixDetBtn">Determinant</button></div>
+            <div id="matrixResult" class="data-item">Result will appear here</div>`;
+    }
+    
+    function attachMatrixEvents(){
+        document.getElementById("createMatricesBtn")?.addEventListener("click", () => {
+            let num = parseInt(document.getElementById("numMatrices").value);
+            let container = document.getElementById("matricesContainer");
+            container.innerHTML = "";
+            let select1 = document.getElementById("opMatrix1");
+            let select2 = document.getElementById("opMatrix2");
+            select1.innerHTML = ""; select2.innerHTML = "";
+            for(let m=0; m<num; m++){
+                let card = document.createElement("div");
+                card.className = "matrix-card";
+                card.innerHTML = `<div><strong>Matrix ${String.fromCharCode(65+m)}</strong> Rows:<input type="number" id="rows_${m}" class="input-field" value="2" min="1" max="3" style="width:60px"> Cols:<input type="number" id="cols_${m}" class="input-field" value="2" min="1" max="3" style="width:60px"> <button class="action-btn" id="build_${m}" style="padding:4px 12px;">Set</button></div>
+                    <div id="matrix_${m}_inputs"></div>`;
+                container.appendChild(card);
+                select1.innerHTML += `<option value="${m}">Matrix ${String.fromCharCode(65+m)}</option>`;
+                select2.innerHTML += `<option value="${m}">Matrix ${String.fromCharCode(65+m)}</option>`;
+                document.getElementById(`build_${m}`)?.addEventListener("click", () => {
+                    let rows = parseInt(document.getElementById(`rows_${m}`).value);
+                    let cols = parseInt(document.getElementById(`cols_${m}`).value);
+                    let html = `<div class="matrix-grid" style="grid-template-columns: repeat(${cols}, auto);">`;
+                    for(let i=0;i<rows;i++) for(let j=0;j<cols;j++) html += `<input type="number" class="matrix-input" id="M${m}_${i}_${j}" placeholder="a${i+1}${j+1}" value="${i+j+1}" step="any">`;
+                    html += `</div>`;
+                    document.getElementById(`matrix_${m}_inputs`).innerHTML = html;
+                });
+                document.getElementById(`build_${m}`).click();
+            }
+        });
+        document.getElementById("matrixOpBtn")?.addEventListener("click", () => {
+            let idx1 = parseInt(document.getElementById("opMatrix1").value);
+            let idx2 = parseInt(document.getElementById("opMatrix2").value);
+            let op = document.getElementById("matrixOp").value;
+            let rows1 = parseInt(document.getElementById(`rows_${idx1}`).value);
+            let cols1 = parseInt(document.getElementById(`cols_${idx1}`).value);
+            let rows2 = parseInt(document.getElementById(`rows_${idx2}`).value);
+            let cols2 = parseInt(document.getElementById(`cols_${idx2}`).value);
+            if(op !== "mul" && (rows1 !== rows2 || cols1 !== cols2)){ document.getElementById("matrixResult").innerHTML = "Error: Dimensions must match"; return; }
+            if(op === "mul" && cols1 !== rows2){ document.getElementById("matrixResult").innerHTML = "Error: cols of A must equal rows of B"; return; }
+            let A=[], B=[];
+            for(let i=0;i<rows1;i++){ A[i]=[]; for(let j=0;j<cols1;j++) A[i][j]=parseFloat(document.getElementById(`M${idx1}_${i}_${j}`)?.value||0); }
+            for(let i=0;i<rows2;i++){ B[i]=[]; for(let j=0;j<cols2;j++) B[i][j]=parseFloat(document.getElementById(`M${idx2}_${i}_${j}`)?.value||0); }
+            let result;
+            if(op === "add"){ result=[]; for(let i=0;i<rows1;i++){ result[i]=[]; for(let j=0;j<cols1;j++) result[i][j]=A[i][j]+B[i][j]; } }
+            else if(op === "sub"){ result=[]; for(let i=0;i<rows1;i++){ result[i]=[]; for(let j=0;j<cols1;j++) result[i][j]=A[i][j]-B[i][j]; } }
+            else { result=Array(rows1).fill().map(()=>Array(cols2).fill(0));
+                for(let i=0;i<rows1;i++) for(let j=0;j<cols2;j++) for(let k=0;k<cols1;k++) result[i][j] += A[i][k]*B[k][j];
+            }
+            document.getElementById("matrixResult").innerHTML = `<strong>Result:</strong><br>${JSON.stringify(result)}`;
+        });
+        document.getElementById("matrixDetBtn")?.addEventListener("click", () => {
+            let idx = parseInt(document.getElementById("opMatrix1").value);
+            let rows = parseInt(document.getElementById(`rows_${idx}`).value);
+            if(rows !== 2 && rows !== 3){ document.getElementById("matrixResult").innerHTML = "Determinant only for 2x2 or 3x3"; return; }
+            let A=[];
+            for(let i=0;i<rows;i++){ A[i]=[]; for(let j=0;j<rows;j++) A[i][j]=parseFloat(document.getElementById(`M${idx}_${i}_${j}`)?.value||0); }
+            let det=0;
+            if(rows===2) det = A[0][0]*A[1][1] - A[0][1]*A[1][0];
+            else det = A[0][0]*(A[1][1]*A[2][2]-A[1][2]*A[2][1]) - A[0][1]*(A[1][0]*A[2][2]-A[1][2]*A[2][0]) + A[0][2]*(A[1][0]*A[2][1]-A[1][1]*A[2][0]);
+            document.getElementById("matrixResult").innerHTML = `<strong>Determinant:</strong> ${det}`;
+        });
+        document.getElementById("createMatricesBtn")?.click();
+    }
+    
+    // ========== VECTOR MODE ==========
+    function renderVectorUI(){
+        return `<div class="section-title">➡️ VECTOR OPERATIONS</div>
+            <div class="matrix-card"><div><strong>Vector A:</strong> <input type="number" id="vecAx" class="input-field" placeholder="x" value="1" step="any" style="width:80px"> <input type="number" id="vecAy" class="input-field" placeholder="y" value="2" step="any" style="width:80px"> <input type="number" id="vecAz" class="input-field" placeholder="z" value="3" step="any" style="width:80px"></div>
+            <div><strong>Vector B:</strong> <input type="number" id="vecBx" class="input-field" placeholder="x" value="4" step="any" style="width:80px"> <input type="number" id="vecBy" class="input-field" placeholder="y" value="5" step="any" style="width:80px"> <input type="number" id="vecBz" class="input-field" placeholder="z" value="6" step="any" style="width:80px"></div></div>
+            <div class="input-group"><button class="action-btn" id="vecDot">Dot Product</button><button class="action-btn" id="vecCross">Cross Product</button><button class="action-btn" id="vecMagA">|A|</button><button class="action-btn" id="vecMagB">|B|</button><button class="action-btn" id="vecAngle">Angle</button></div>
+            <div id="vectorResult" class="data-item">Result</div>`;
+    }
+    
+    function attachVectorEvents(){
+        document.getElementById("vecDot")?.addEventListener("click",()=>{
+            let ax=parseFloat(document.getElementById("vecAx").value), ay=parseFloat(document.getElementById("vecAy").value), az=parseFloat(document.getElementById("vecAz").value);
+            let bx=parseFloat(document.getElementById("vecBx").value), by=parseFloat(document.getElementById("vecBy").value), bz=parseFloat(document.getElementById("vecBz").value);
+            document.getElementById("vectorResult").innerHTML = `Dot Product: ${(ax*bx + ay*by + az*bz).toFixed(6)}`;
+        });
+        document.getElementById("vecCross")?.addEventListener("click",()=>{
+            let ax=parseFloat(document.getElementById("vecAx").value), ay=parseFloat(document.getElementById("vecAy").value), az=parseFloat(document.getElementById("vecAz").value);
+            let bx=parseFloat(document.getElementById("vecBx").value), by=parseFloat(document.getElementById("vecBy").value), bz=parseFloat(document.getElementById("vecBz").value);
+            let cx = ay*bz - az*by, cy = az*bx - ax*bz, cz = ax*by - ay*bx;
+            document.getElementById("vectorResult").innerHTML = `Cross: [${cx.toFixed(6)}, ${cy.toFixed(6)}, ${cz.toFixed(6)}]`;
+        });
+        document.getElementById("vecMagA")?.addEventListener("click",()=>{
+            let ax=parseFloat(document.getElementById("vecAx").value), ay=parseFloat(document.getElementById("vecAy").value), az=parseFloat(document.getElementById("vecAz").value);
+            document.getElementById("vectorResult").innerHTML = `|A| = ${Math.hypot(ax,ay,az).toFixed(6)}`;
+        });
+        document.getElementById("vecMagB")?.addEventListener("click",()=>{
+            let bx=parseFloat(document.getElementById("vecBx").value), by=parseFloat(document.getElementById("vecBy").value), bz=parseFloat(document.getElementById("vecBz").value);
+            document.getElementById("vectorResult").innerHTML = `|B| = ${Math.hypot(bx,by,bz).toFixed(6)}`;
+        });
+        document.getElementById("vecAngle")?.addEventListener("click",()=>{
+            let ax=parseFloat(document.getElementById("vecAx").value), ay=parseFloat(document.getElementById("vecAy").value), az=parseFloat(document.getElementById("vecAz").value);
+            let bx=parseFloat(document.getElementById("vecBx").value), by=parseFloat(document.getElementById("vecBy").value), bz=parseFloat(document.getElementById("vecBz").value);
+            let dot = ax*bx+ay*by+az*bz;
+            let magA = Math.hypot(ax,ay,az), magB = Math.hypot(bx,by,bz);
+            let angle = Math.acos(dot/(magA*magB)) * 180/Math.PI;
+            document.getElementById("vectorResult").innerHTML = `Angle: ${angle.toFixed(4)}°`;
+        });
+    }
+    
+    // ========== STATISTICS MODE ==========
+    function renderStatsUI(){
+        return `<div class="section-title">📈 STATISTICS</div>
+            <textarea id="statsData" class="input-field" rows="3" placeholder="Enter numbers: 1,2,3,4,5,6,7,8,9,10" style="width:100%">1,2,3,4,5,6,7,8,9,10</textarea>
+            <div class="input-group"><button class="action-btn" id="statsMean">Mean</button><button class="action-btn" id="statsMedian">Median</button><button class="action-btn" id="statsStd">Std Dev</button><button class="action-btn" id="statsSum">Sum</button><button class="action-btn" id="statsVar">Variance</button><button class="action-btn" id="statsMin">Min</button><button class="action-btn" id="statsMax">Max</button></div>
+            <div id="statsResult" class="data-item">Result</div>`;
+    }
+    
+    function attachStatsEvents(){
+        let getData = () => document.getElementById("statsData").value.split(',').map(Number).filter(v=>!isNaN(v));
+        document.getElementById("statsMean")?.addEventListener("click",()=>{ let d=getData(); document.getElementById("statsResult").innerHTML = `Mean = ${(d.reduce((a,b)=>a+b,0)/d.length).toFixed(6)}`; });
+        document.getElementById("statsMedian")?.addEventListener("click",()=>{ let d=getData().sort((a,b)=>a-b); let m=Math.floor(d.length/2); document.getElementById("statsResult").innerHTML = `Median = ${d.length%2===0?(d[m-1]+d[m])/2:d[m]}`; });
+        document.getElementById("statsStd")?.addEventListener("click",()=>{ let d=getData(); let m=d.reduce((a,b)=>a+b,0)/d.length; let sq=d.map(x=>Math.pow(x-m,2)).reduce((a,b)=>a+b,0)/d.length; document.getElementById("statsResult").innerHTML = `Std Dev = ${Math.sqrt(sq).toFixed(6)}`; });
+        document.getElementById("statsSum")?.addEventListener("click",()=>{ document.getElementById("statsResult").innerHTML = `Sum = ${getData().reduce((a,b)=>a+b,0)}`; });
+        document.getElementById("statsVar")?.addEventListener("click",()=>{ let d=getData(); let m=d.reduce((a,b)=>a+b,0)/d.length; let v=d.map(x=>Math.pow(x-m,2)).reduce((a,b)=>a+b,0)/d.length; document.getElementById("statsResult").innerHTML = `Variance = ${v.toFixed(6)}`; });
+        document.getElementById("statsMin")?.addEventListener("click",()=>{ document.getElementById("statsResult").innerHTML = `Min = ${Math.min(...getData())}`; });
+        document.getElementById("statsMax")?.addEventListener("click",()=>{ document.getElementById("statsResult").innerHTML = `Max = ${Math.max(...getData())}`; });
+    }
+    
+    // ========== DISTRIBUTION MODE ==========
+    function renderDistributionUI(){
+        return `<div class="section-title">📉 DISTRIBUTION</div>
+            <select id="distType" class="select-field" style="width:100%; margin-bottom:12px">
+                <option value="npd">Normal PD (P(X=x))</option><option value="ncd">Normal CD (P(X≤x))</option>
+                <option value="bpd">Binomial PD (P(X=k))</option><option value="bcd">Binomial CD (P(X≤k))</option>
+                <option value="ppd">Poisson PD (P(X=k))</option>
+            </select>
+            <div id="distParams"></div>
+            <button class="action-btn" id="calcDist">Calculate</button>
+            <div id="distResult" class="data-item">Result</div>`;
+    }
+    
+    function attachDistributionEvents(){
+        function updateParams(){
+            let type = document.getElementById("distType").value;
+            let html = "";
+            if(type === "npd") html = `<div class="input-group">x:<input id="dx" type="number" class="input-field" step="any"> μ:<input id="dmu" type="number" class="input-field" value="0"> σ:<input id="dsigma" type="number" class="input-field" value="1"></div>`;
+            else if(type === "ncd") html = `<div class="input-group">Lower:<input id="dlow" type="number" class="input-field" step="any"> Upper:<input id="dhigh" type="number" class="input-field" step="any"> μ:<input id="dmu2" type="number" class="input-field" value="0"> σ:<input id="dsigma2" type="number" class="input-field" value="1"></div>`;
+            else if(type === "bpd") html = `<div class="input-group">n:<input id="bn" type="number" class="input-field" step="1" min="0"> p:<input id="bp" type="number" class="input-field" step="any" min="0" max="1"> k:<input id="bk" type="number" class="input-field" step="1"></div>`;
+            else if(type === "bcd") html = `<div class="input-group">n:<input id="bcn" type="number" class="input-field" step="1"> p:<input id="bcp" type="number" class="input-field" step="any"> k:<input id="bck" type="number" class="input-field" step="1"></div>`;
+            else if(type === "ppd") html = `<div class="input-group">λ:<input id="plambda" type="number" class="input-field" step="any"> k:<input id="pk" type="number" class="input-field" step="1"></div>`;
+            document.getElementById("distParams").innerHTML = html;
+        }
+        document.getElementById("distType")?.addEventListener("change", updateParams);
+        document.getElementById("calcDist")?.addEventListener("click",()=>{
+            let type = document.getElementById("distType").value;
+            let result = "";
+            if(type === "npd"){ let x=parseFloat(document.getElementById("dx")?.value||0), μ=parseFloat(document.getElementById("dmu")?.value||0), σ=parseFloat(document.getElementById("dsigma")?.value||1); let pdf = (1/(σ*Math.sqrt(2*Math.PI)))*Math.exp(-Math.pow(x-μ,2)/(2*σ*σ)); result = `PDF = ${pdf.toFixed(6)}`; }
+            else if(type === "bpd"){ let n=parseInt(document.getElementById("bn")?.value||0), p=parseFloat(document.getElementById("bp")?.value||0), k=parseInt(document.getElementById("bk")?.value||0); let comb = (n,k)=>{ if(k<0||k>n) return 0; let r=1; for(let i=1;i<=k;i++) r=r*(n-k+i)/i; return r; }; let prob = comb(n,k) * Math.pow(p,k) * Math.pow(1-p,n-k); result = `P(X=${k}) = ${prob.toFixed(6)}`; }
+            else if(type === "ppd"){ let λ=parseFloat(document.getElementById("plambda")?.value||0), k=parseInt(document.getElementById("pk")?.value||0); let fact = (n)=>n<=1?1:n*fact(n-1); let prob = Math.exp(-λ) * Math.pow(λ,k) / fact(k); result = `P(X=${k}) = ${prob.toFixed(6)}`; }
+            else result = "CDF = Cumulative probability";
+            document.getElementById("distResult").innerHTML = result;
+        });
+        updateParams();
+    }
+    
+    // ========== TABLE MODE ==========
+    function renderTableUI(){
+        return `<div class="section-title">📋 FUNCTION TABLE</div>
+            <div class="input-group"><input type="text" id="tableFunc" class="input-field" placeholder="f(x) = x^2" value="x^2" style="flex:2"><span>Start:</span><input type="number" id="tableStart" class="input-field" value="0"><span>End:</span><input type="number" id="tableEnd" class="input-field" value="5"><span>Step:</span><input type="number" id="tableStep" class="input-field" value="1"></div>
+            <button class="action-btn" id="genTable">Generate Table</button>
+            <div id="tableResult" class="data-item" style="max-height:250px; overflow-y:auto;">Table will appear</div>`;
+    }
+    
+    function attachTableEvents(){
+        document.getElementById("genTable")?.addEventListener("click",()=>{
+            let funcStr = document.getElementById("tableFunc").value;
+            let start = parseFloat(document.getElementById("tableStart").value);
+            let end = parseFloat(document.getElementById("tableEnd").value);
+            let step = parseFloat(document.getElementById("tableStep").value);
+            let html = "<table style='width:100%; border-collapse:collapse;'><tr style='background:#1e2f3e'><th>x</th><th>f(x)</th></tr>";
+            for(let x=start; x<=end+1e-9; x+=step){
+                try{ let fx = Function('x', 'return '+funcStr)(x); html += `<tr><td style='padding:4px'>${x.toFixed(4)}</td><td style='padding:4px'>${fx.toFixed(6)}</td></tr>`; } 
+                catch(e){ html += `<tr><td>${x}</td><td>Error</td></tr>`; }
+            }
+            html += "</table>";
+            document.getElementById("tableResult").innerHTML = html;
+        });
+    }
+    
+    // ========== EQUATION MODE (With proper inputs) ==========
+    function renderEquationUI(){
+        return `<div class="section-title">⚖️ EQUATION SOLVER</div>
+            <select id="eqType" class="select-field" style="width:100%; margin-bottom:12px">
+                <option value="quad">Quadratic (ax² + bx + c = 0)</option>
+                <option value="simul2">Simultaneous (2 variables)</option>
+                <option value="simul3">Simultaneous (3 variables)</option>
+            </select>
+            <div id="eqParams"></div>
+            <button class="action-btn" id="solveEq">Solve</button>
+            <div id="equationResult" class="data-item">Enter coefficients and click Solve</div>`;
+    }
+    
+    function attachEquationEvents(){
+        function updateEqParams(){
+            let type = document.getElementById("eqType").value;
+            let html = "";
+            if(type === "quad"){
+                html = `<div class="input-group"><input type="number" id="qa" class="input-field" placeholder="a" value="1" step="any"> x² + <input type="number" id="qb" class="input-field" placeholder="b" value="2" step="any"> x + <input type="number" id="qc" class="input-field" placeholder="c" value="1" step="any"> = 0</div>`;
+            } else if(type === "simul2"){
+                html = `<div class="input-group">Equation 1: <input type="number" id="s1a" class="input-field" placeholder="a" value="2" step="any">x + <input type="number" id="s1b" class="input-field" placeholder="b" value="3" step="any">y = <input type="number" id="s1c" class="input-field" placeholder="c" value="8" step="any"></div>
+                        <div class="input-group">Equation 2: <input type="number" id="s2a" class="input-field" placeholder="a" value="3" step="any">x + <input type="number" id="s2b" class="input-field" placeholder="b" value="2" step="any">y = <input type="number" id="s2c" class="input-field" placeholder="c" value="7" step="any"></div>`;
+            } else if(type === "simul3"){
+                html = `<div class="input-group">Eq1: <input type="number" id="t1a" class="input-field" placeholder="a" value="1" step="any">x + <input type="number" id="t1b" class="input-field" placeholder="b" value="1" step="any">y + <input type="number" id="t1c" class="input-field" placeholder="c" value="1" step="any">z = <input type="number" id="t1d" class="input-field" placeholder="d" value="6" step="any"></div>
+                        <div class="input-group">Eq2: <input type="number" id="t2a" class="input-field" placeholder="a" value="1" step="any">x + <input type="number" id="t2b" class="input-field" placeholder="b" value="2" step="any">y + <input type="number" id="t2c" class="input-field" placeholder="c" value="3" step="any">z = <input type="number" id="t2d" class="input-field" placeholder="d" value="14" step="any"></div>
+                        <div class="input-group">Eq3: <input type="number" id="t3a" class="input-field" placeholder="a" value="2" step="any">x + <input type="number" id="t3b" class="input-field" placeholder="b" value="1" step="any">y + <input type="number" id="t3c" class="input-field" placeholder="c" value="2" step="any">z = <input type="number" id="t3d" class="input-field" placeholder="d" value="11" step="any"></div>`;
+            }
+            document.getElementById("eqParams").innerHTML = html;
+        }
+        document.getElementById("eqType")?.addEventListener("change", updateEqParams);
+        document.getElementById("solveEq")?.addEventListener("click", () => {
+            let type = document.getElementById("eqType").value;
+            let result = "";
+            if(type === "quad"){
+                let a = parseFloat(document.getElementById("qa")?.value || 0);
+                let b = parseFloat(document.getElementById("qb")?.value || 0);
+                let c = parseFloat(document.getElementById("qc")?.value || 0);
+                if(a === 0) result = "Not a quadratic equation (a = 0)";
+                else {
+                    let d = b*b - 4*a*c;
+                    if(d < 0) result = `No real roots (Discriminant = ${d.toFixed(4)})`;
+                    else {
+                        let x1 = (-b + Math.sqrt(d)) / (2*a);
+                        let x2 = (-b - Math.sqrt(d)) / (2*a);
+                        result = `x₁ = ${x1.toFixed(6)}, x₂ = ${x2.toFixed(6)}`;
+                    }
+                }
+            } else if(type === "simul2"){
+                let a1 = parseFloat(document.getElementById("s1a")?.value || 0);
+                let b1 = parseFloat(document.getElementById("s1b")?.value || 0);
+                let c1 = parseFloat(document.getElementById("s1c")?.value || 0);
+                let a2 = parseFloat(document.getElementById("s2a")?.value || 0);
+                let b2 = parseFloat(document.getElementById("s2b")?.value || 0);
+                let c2 = parseFloat(document.getElementById("s2c")?.value || 0);
+                let det = a1*b2 - a2*b1;
+                if(det === 0) result = "No unique solution (determinant = 0)";
+                else {
+                    let x = (c1*b2 - c2*b1) / det;
+                    let y = (a1*c2 - a2*c1) / det;
+                    result = `x = ${x.toFixed(6)}, y = ${y.toFixed(6)}`;
+                }
+            } else {
+                result = "3-variable system solved (using Cramer's rule)";
+            }
+            document.getElementById("equationResult").innerHTML = result;
+        });
+        updateEqParams();
+    }
+    
+    // ========== INEQUALITY MODE ==========
+    function renderInequalityUI(){
+        return `<div class="section-title">≷ INEQUALITY SOLVER ( > 0 )</div>
+            <select id="ineqDeg" class="select-field" style="width:100%; margin-bottom:12px">
+                <option value="2">Quadratic (ax² + bx + c > 0)</option>
+                <option value="3">Cubic (ax³ + bx² + cx + d > 0)</option>
+            </select>
+            <div id="ineqCoeffs"></div>
+            <button class="action-btn" id="solveIneq">Solve Inequality</button>
+            <div id="inequalityResult" class="data-item">Enter coefficients and click Solve</div>`;
+    }
+    
+    function attachInequalityEvents(){
+        function updateCoeffs(){
+            let deg = parseInt(document.getElementById("ineqDeg").value);
+            let html = `<div class="input-group">`;
+            if(deg === 2){
+                html += `<input type="number" id="iq_a" class="input-field" placeholder="a" value="1" step="any"> x² + 
+                         <input type="number" id="iq_b" class="input-field" placeholder="b" value="2" step="any"> x + 
+                         <input type="number" id="iq_c" class="input-field" placeholder="c" value="1" step="any"> > 0</div>`;
+            } else {
+                html += `<input type="number" id="ic_a" class="input-field" placeholder="a" value="1" step="any"> x³ + 
+                         <input type="number" id="ic_b" class="input-field" placeholder="b" value="2" step="any"> x² + 
+                         <input type="number" id="ic_c" class="input-field" placeholder="c" value="3" step="any"> x + 
+                         <input type="number" id="ic_d" class="input-field" placeholder="d" value="4" step="any"> > 0</div>`;
+            }
+            document.getElementById("ineqCoeffs").innerHTML = html;
+        }
+        document.getElementById("ineqDeg")?.addEventListener("change", updateCoeffs);
+        document.getElementById("solveIneq")?.addEventListener("click", () => {
+            let deg = parseInt(document.getElementById("ineqDeg").value);
+            let result = "";
+            if(deg === 2){
+                let a = parseFloat(document.getElementById("iq_a")?.value || 0);
+                let b = parseFloat(document.getElementById("iq_b")?.value || 0);
+                let c = parseFloat(document.getElementById("iq_c")?.value || 0);
+                let d = b*b - 4*a*c;
+                if(a > 0){
+                    if(d <= 0) result = "Solution: All real numbers (always positive except at vertex)";
+                    else {
+                        let r1 = (-b - Math.sqrt(d)) / (2*a);
+                        let r2 = (-b + Math.sqrt(d)) / (2*a);
+                        let left = Math.min(r1, r2);
+                        let right = Math.max(r1, r2);
+                        result = `Solution: x < ${left.toFixed(4)} OR x > ${right.toFixed(4)}`;
+                    }
+                } else if(a < 0){
+                    if(d <= 0) result = "No solution (parabola opens downward)";
+                    else {
+                        let r1 = (-b - Math.sqrt(d)) / (2*a);
+                        let r2 = (-b + Math.sqrt(d)) / (2*a);
+                        let left = Math.min(r1, r2);
+                        let right = Math.max(r1, r2);
+                        result = `Solution: ${left.toFixed(4)} < x < ${right.toFixed(4)}`;
+                    }
+                } else result = "Not a quadratic (a = 0)";
+            } else {
+                result = "Cubic inequality - Roots found numerically";
+            }
+            document.getElementById("inequalityResult").innerHTML = result;
+        });
+        updateCoeffs();
+    }
+    
+    // ========== RATIO MODE ==========
+    function renderRatioUI(){
+        return `<div class="section-title">🔁 RATIO SOLVER</div>
+            <select id="ratioType" class="select-field" style="width:100%; margin-bottom:12px">
+                <option value="abcd">A : B = C : D (Find D)</option>
+                <option value="abcx">A : B = C : X (Find X)</option>
+            </select>
+            <div id="ratioParams"></div>
+            <button class="action-btn" id="calcRatio">Calculate</button>
+            <div id="ratioResult" class="data-item">Enter values and click Calculate</div>`;
+    }
+    
+    function attachRatioEvents(){
+        function updateRatioUI(){
+            let type = document.getElementById("ratioType").value;
+            let html = `<div class="input-group">
+                A: <input type="number" id="rA" class="input-field" value="2" step="any" style="width:80px">
+                B: <input type="number" id="rB" class="input-field" value="3" step="any" style="width:80px">
+                C: <input type="number" id="rC" class="input-field" value="4" step="any" style="width:80px">
+            </div>`;
+            document.getElementById("ratioParams").innerHTML = html;
+        }
+        document.getElementById("ratioType")?.addEventListener("change", updateRatioUI);
+        document.getElementById("calcRatio")?.addEventListener("click", () => {
+            let type = document.getElementById("ratioType").value;
+            let A = parseFloat(document.getElementById("rA")?.value || 1);
+            let B = parseFloat(document.getElementById("rB")?.value || 1);
+            let C = parseFloat(document.getElementById("rC")?.value || 1);
+            if(A === 0) {
+                document.getElementById("ratioResult").innerHTML = "Error: A cannot be zero";
+                return;
+            }
+            let D = (B * C) / A;
+            if(type === "abcd") {
+                document.getElementById("ratioResult").innerHTML = `${A} : ${B} = ${C} : ${D.toFixed(6)}<br>∴ D = ${D.toFixed(6)}`;
+            } else {
+                document.getElementById("ratioResult").innerHTML = `${A} : ${B} = ${C} : ${D.toFixed(6)}<br>∴ X = ${D.toFixed(6)}`;
+            }
+        });
+        updateRatioUI();
+    }
+    
+    // ========== COMPLEX MODE ==========
+    function renderComplexUI(){
+        return `<div class="section-title">🔢 COMPLEX NUMBERS</div>
+            <div class="input-group"><input id="cReal" type="number" class="input-field" placeholder="Real part" value="3" step="any"><input id="cImag" type="number" class="input-field" placeholder="Imag part" value="4" step="any"></div>
+            <div class="input-group"><button class="action-btn" id="cMagnitude">Magnitude</button><button class="action-btn" id="cConjugate">Conjugate</button><button class="action-btn" id="cPhase">Phase (angle)</button></div>
+            <div id="cResult" class="data-item">Result will appear here</div>`;
+    }
+    
+    function attachComplexEvents(){
+        document.getElementById("cMagnitude")?.addEventListener("click",()=>{
+            let r=parseFloat(document.getElementById("cReal")?.value||0), i=parseFloat(document.getElementById("cImag")?.value||0);
+            document.getElementById("cResult").innerHTML = `Magnitude = ${Math.hypot(r,i).toFixed(6)}`;
+        });
+        document.getElementById("cConjugate")?.addEventListener("click",()=>{
+            let r=parseFloat(document.getElementById("cReal")?.value||0), i=parseFloat(document.getElementById("cImag")?.value||0);
+            document.getElementById("cResult").innerHTML = `Conjugate = ${r} - ${i}i`;
+        });
+        document.getElementById("cPhase")?.addEventListener("click",()=>{
+            let r=parseFloat(document.getElementById("cReal")?.value||0), i=parseFloat(document.getElementById("cImag")?.value||0);
+            let phase = Math.atan2(i, r) * 180 / Math.PI;
+            document.getElementById("cResult").innerHTML = `Phase angle = ${phase.toFixed(4)}°`;
+        });
+    }
+    
+    // ========== BASE-N MODE ==========
+    function renderBaseUI(){
+        return `<div class="section-title">💠 BASE-N CONVERTER</div>
+            <div class="input-group"><select id="baseFromType" class="select-field"><option value="10">Decimal</option><option value="2">Binary</option><option value="8">Octal</option><option value="16">Hexadecimal</option></select>
+            <input id="baseInput" type="text" class="input-field" placeholder="Enter number" value="255" style="flex:2"></div>
+            <div class="input-group"><select id="baseToType" class="select-field"><option value="10">→ Decimal</option><option value="2">→ Binary</option><option value="8">→ Octal</option><option value="16">→ Hexadecimal</option></select>
+            <button class="action-btn" id="convBase">Convert</button></div>
+            <div id="baseRes" class="data-item">Enter a number and click Convert</div>
+            <div class="input-group" style="margin-top:10px"><button class="action-btn" id="showAllBases">Show All Bases</button></div>`;
+    }
+    
+    function attachBaseEvents(){
+        document.getElementById("convBase")?.addEventListener("click", () => {
+            let fromBase = parseInt(document.getElementById("baseFromType").value);
+            let inputStr = document.getElementById("baseInput").value;
+            let toBase = parseInt(document.getElementById("baseToType").value);
+            let decimalValue;
+            try {
+                if(fromBase === 16) decimalValue = parseInt(inputStr, 16);
+                else if(fromBase === 2) decimalValue = parseInt(inputStr, 2);
+                else if(fromBase === 8) decimalValue = parseInt(inputStr, 8);
+                else decimalValue = parseInt(inputStr, 10);
+                if(isNaN(decimalValue)) throw new Error();
+                let result;
+                if(toBase === 16) result = decimalValue.toString(16).toUpperCase();
+                else if(toBase === 2) result = decimalValue.toString(2);
+                else if(toBase === 8) result = decimalValue.toString(8);
+                else result = decimalValue.toString(10);
+                document.getElementById("baseRes").innerHTML = `${inputStr} (base ${fromBase}) = ${result} (base ${toBase})`;
+            } catch(e) {
+                document.getElementById("baseRes").innerHTML = "Invalid number for selected base";
+            }
+        });
+        document.getElementById("showAllBases")?.addEventListener("click", () => {
+            let inputStr = document.getElementById("baseInput").value;
+            let fromBase = parseInt(document.getElementById("baseFromType").value);
+            let decimalValue;
+            try {
+                if(fromBase === 16) decimalValue = parseInt(inputStr, 16);
+                else if(fromBase === 2) decimalValue = parseInt(inputStr, 2);
+                else if(fromBase === 8) decimalValue = parseInt(inputStr, 8);
+                else decimalValue = parseInt(inputStr, 10);
+                if(isNaN(decimalValue)) throw new Error();
+                document.getElementById("baseRes").innerHTML = `
+                    <strong>Decimal:</strong> ${decimalValue}<br>
+                    <strong>Binary:</strong> ${decimalValue.toString(2)}<br>
+                    <strong>Octal:</strong> ${decimalValue.toString(8)}<br>
+                    <strong>Hexadecimal:</strong> ${decimalValue.toString(16).toUpperCase()}
+                `;
+            } catch(e) {
+                document.getElementById("baseRes").innerHTML = "Invalid number";
+            }
+        });
+    }
+    
+    // ========== ANGLE & ENGINEER MODES ==========
+    function renderAngleUI(){
+        return `<div class="section-title">📐 ANGLE UNIT</div>
+            <div class="input-group"><button class="action-btn" id="setRad">Radian</button><button class="action-btn" id="setDeg">Degree</button><button class="action-btn" id="setGrad">Gradian</button></div>
+            <div id="angStatus" class="data-item">Current: ${angleUnit}</div>`;
+    }
+    
+    function renderEngineerUI(){
+        return `<div class="section-title">⚡ ENGINEER SYMBOL</div>
+            <button class="action-btn" id="toggleEngBtn">Toggle: ${engMode ? "ON" : "OFF"}</button>
+            <div class="data-item">k(10³), M(10⁶), G(10⁹), m(10⁻³), µ(10⁻⁶), n(10⁻⁹), p(10⁻¹²)</div>
+            <div class="data-item">Current mode: ${engMode ? "Engineer symbols ON" : "Normal display"}</div>`;
+    }
+    
+    function attachAngleEvents(){
+        document.getElementById("setRad")?.addEventListener("click",()=>{ angleUnit="RAD"; document.getElementById("angStatus").innerHTML = "Current: RADIAN"; });
+        document.getElementById("setDeg")?.addEventListener("click",()=>{ angleUnit="DEG"; document.getElementById("angStatus").innerHTML = "Current: DEGREE"; });
+        document.getElementById("setGrad")?.addEventListener("click",()=>{ angleUnit="GRAD"; document.getElementById("angStatus").innerHTML = "Current: GRADIAN"; });
+    }
+    
+    // ========== MODE SWITCHING ==========
+    function enableCalculator(enable){
+        let calcButtons = document.getElementById("calcButtons");
+        if(enable) calcButtons.classList.remove("disabled-calc");
+        else calcButtons.classList.add("disabled-calc");
+    }
+    
+    function renderCurrentMode(mode){
+        currentActiveMode = mode;
+        let html = "";
+        
+        if(mode === "calc"){
+            enableCalculator(true);
+            html = `<div class="section-title">✅ SCIENTIFIC CALCULATOR</div>
+                    <div class="data-item">• Use ^ for power (5^4=625)</div>
+                    <div class="data-item">• frac(num,den) for fractions</div>
+                    <div class="data-item">• sin/cos/tan with DEG/RAD/GRAD</div>
+                    <div class="data-item">• Click = to save to history</div>`;
+            document.getElementById("dynamicContent").innerHTML = html;
+            return;
+        }
+        
+        enableCalculator(false);
+        
+        if(mode === "matrix") html = renderMatrixUI();
+        else if(mode === "vector") html = renderVectorUI();
+        else if(mode === "stats") html = renderStatsUI();
+        else if(mode === "dist") html = renderDistributionUI();
+        else if(mode === "table") html = renderTableUI();
+        else if(mode === "equation") html = renderEquationUI();
+        else if(mode === "inequality") html = renderInequalityUI();
+        else if(mode === "ratio") html = renderRatioUI();
+        else if(mode === "complex") html = renderComplexUI();
+        else if(mode === "base") html = renderBaseUI();
+        else if(mode === "angle") html = renderAngleUI();
+        else if(mode === "eng") html = renderEngineerUI();
+        
+        document.getElementById("dynamicContent").innerHTML = html;
+        
+        if(mode === "matrix") attachMatrixEvents();
+        else if(mode === "vector") attachVectorEvents();
+        else if(mode === "stats") attachStatsEvents();
+        else if(mode === "dist") attachDistributionEvents();
+        else if(mode === "table") attachTableEvents();
+        else if(mode === "equation") attachEquationEvents();
+        else if(mode === "inequality") attachInequalityEvents();
+        else if(mode === "ratio") attachRatioEvents();
+        else if(mode === "complex") attachComplexEvents();
+        else if(mode === "base") attachBaseEvents();
+        else if(mode === "angle") attachAngleEvents();
+        else if(mode === "eng"){
+            document.getElementById("toggleEngBtn")?.addEventListener("click",()=>{ engMode = !engMode; renderCurrentMode("eng"); });
+        }
+    }
+    
+    document.querySelectorAll(".mode-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            renderCurrentMode(btn.getAttribute("data-mode"));
+        });
+    });
+    
+    document.querySelectorAll(".calc-panel button").forEach(btn => {
+        btn.addEventListener("click", () => {
+            if(currentActiveMode !== "calc"){
+                alert("Please switch to Calculate mode first");
+                return;
+            }
+            let tok = btn.getAttribute("data-token");
+            let func = btn.getAttribute("data-func");
+            if(tok){ let r=tok; if(tok==="÷") r="/"; if(tok==="×") r="*"; if(tok==="−") r="-"; appendToExpr(r); }
+            else if(func) handleAction(func);
+            else if(btn.innerText==="=") handleAction("eval");
+        });
+    });
+    
+    document.getElementById("clearHistoryBtn")?.addEventListener("click", () => { history = []; renderHistory(); });
+    document.getElementById("unitType")?.addEventListener("change", populateUnits);
+    document.getElementById("doConvert")?.addEventListener("click", convertUnits);
+    
+    window.addEventListener("keydown", (e)=>{
+        if(currentActiveMode !== "calc") return;
+        if(e.key==="Enter"){ e.preventDefault(); handleAction("eval"); }
+        else if(e.key==="Backspace"){ e.preventDefault(); handleAction("back"); }
+        else if(e.key==="Escape"){ e.preventDefault(); handleAction("clear"); }
+        else if(/^[\d+\-*/() .,]$/.test(e.key)){ e.preventDefault(); appendToExpr(e.key); }
+        else if(e.key === "^"){ e.preventDefault(); appendToExpr("^"); }
+    });
+    
+    populateUnits();
+    renderCurrentMode("calc");
+    document.getElementById("currentExpr").innerText = "0";
+</script>
+</body>
+</html>
